@@ -16,7 +16,7 @@ const logoUrl = `${import.meta.env.BASE_URL}logo.webp`
         <router-link class="nav-link" to="/alumnos">Alumnos</router-link>
         <router-link class="nav-link" to="/cursos">Cursos</router-link>
         <router-link class="nav-link" to="/notas">Notas</router-link>
-        <router-link class="nav-link" to="/diplomas">Diplomas</router-link>
+        <router-link class="nav-link" to="/certificados">Certificados</router-link>
         <router-link class="nav-link" to="/reportes">Reportes</router-link>
       </div>
       <span class="navbar-text me-3">{{ user.email }}</span>

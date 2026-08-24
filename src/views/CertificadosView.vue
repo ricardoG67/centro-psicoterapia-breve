@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabaseClient'
-import { generarDiplomaPdf, generarConstanciaPdf } from '../lib/diplomaUtils'
+import { generarCertificadoPdf } from '../lib/certificadoUtils'
 
 const alumnos = ref([])
 const busqueda = ref('')
@@ -36,8 +36,8 @@ async function seleccionarAlumno(alumno) {
     .from('matriculas')
     .select(
       `id, fecha_matricula,
-       curso:cursos ( id, nombre ),
-       nota:notas ( calificacion, docente, fecha_evaluacion )`
+       curso:cursos ( id, nombre, horas ),
+       nota:notas ( calificacion, fecha_evaluacion )`
     )
     .eq('alumno_id', alumno.id)
     .order('fecha_matricula', { ascending: false })
@@ -46,23 +46,12 @@ async function seleccionarAlumno(alumno) {
   loading.value = false
 }
 
-async function onGenerarDiploma(matricula) {
-  generando.value = matricula.id + '-diploma'
+async function onGenerarCertificado(matricula) {
+  generando.value = matricula.id
   try {
-    await generarDiplomaPdf(alumnoSeleccionado.value, matricula)
+    await generarCertificadoPdf(alumnoSeleccionado.value, matricula)
   } catch (e) {
-    error.value = 'No se pudo generar el diploma: ' + e.message
-  } finally {
-    generando.value = ''
-  }
-}
-
-async function onGenerarConstancia(matricula) {
-  generando.value = matricula.id + '-constancia'
-  try {
-    await generarConstanciaPdf(alumnoSeleccionado.value, matricula)
-  } catch (e) {
-    error.value = 'No se pudo generar la constancia: ' + e.message
+    error.value = 'No se pudo generar el certificado: ' + e.message
   } finally {
     generando.value = ''
   }
@@ -72,12 +61,8 @@ onMounted(cargarAlumnos)
 </script>
 
 <template>
-  <h1 class="h4 mb-3">Diplomas y constancias</h1>
+  <h1 class="h4 mb-3">Certificados</h1>
   <div v-if="error" class="alert alert-danger">{{ error }}</div>
-  <p class="text-muted small">
-    Mientras no tengamos el diseño oficial del diploma, se genera un documento simple con el
-    logo y los datos del curso. Cuando tengan el diseño definitivo lo reemplazamos sin afectar el resto de la app.
-  </p>
 
   <div class="row">
     <div class="col-md-4">
@@ -98,7 +83,7 @@ onMounted(cargarAlumnos)
     </div>
 
     <div class="col-md-8">
-      <div v-if="!alumnoSeleccionado" class="text-muted">Selecciona un alumno para generar sus documentos.</div>
+      <div v-if="!alumnoSeleccionado" class="text-muted">Selecciona un alumno para generar su certificado.</div>
 
       <template v-else>
         <h2 class="h5">{{ alumnoSeleccionado.nombres }} {{ alumnoSeleccionado.apellidos }}</h2>
@@ -118,19 +103,12 @@ onMounted(cargarAlumnos)
               <td>{{ m.nota?.calificacion ?? '—' }}</td>
               <td class="table-actions">
                 <button
-                  class="btn btn-sm btn-primary me-1"
-                  :disabled="!m.nota?.calificacion || generando === m.id + '-diploma'"
+                  class="btn btn-sm btn-primary"
+                  :disabled="!m.nota?.calificacion || generando === m.id"
                   :title="!m.nota?.calificacion ? 'Aún no tiene nota registrada' : ''"
-                  @click="onGenerarDiploma(m)"
+                  @click="onGenerarCertificado(m)"
                 >
-                  Generar diploma
-                </button>
-                <button
-                  class="btn btn-sm btn-outline-primary"
-                  :disabled="generando === m.id + '-constancia'"
-                  @click="onGenerarConstancia(m)"
-                >
-                  Generar constancia
+                  Generar certificado
                 </button>
               </td>
             </tr>
