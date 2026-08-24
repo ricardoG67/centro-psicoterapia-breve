@@ -73,6 +73,10 @@ create policy "auth full access notas" on notas
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on alumnos, cursos, matriculas, notas to authenticated;
 
+-- service_role (usada solo por scripts de administración locales, como
+-- scripts/importar-alumnos.mjs) también necesita el permiso base.
+grant select, insert, update, delete on alumnos, cursos, matriculas, notas to service_role;
+
 -- Vista de apoyo para los reportes (por alumno, por curso, record de notas)
 -- security_invoker: la vista respeta las políticas RLS de quien consulta,
 -- en vez de heredar los permisos del dueño de la vista (evita fugas).
