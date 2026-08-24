@@ -49,25 +49,25 @@ function exportarActual(formato) {
   if (tab.value === 'alumno') {
     const a = alumnos.value.find((x) => x.id === alumnoIdReporte.value)
     title = `Notas de ${a?.nombres ?? ''} ${a?.apellidos ?? ''}`
-    columns = ['Curso', 'Edición', 'Docente', 'Calificación', 'Fecha evaluación', 'Observación']
+    columns = ['Curso', 'Docente', 'Calificación', 'Fecha evaluación', 'Observación']
     rows = notasPorAlumno.value.map((r) => [
-      r.curso, r.nombre_edicion, r.docente, r.calificacion, r.fecha_evaluacion, r.observacion,
+      r.curso, r.docente, r.calificacion, r.fecha_evaluacion, r.observacion,
     ])
     filenameBase = `notas_${a?.apellidos ?? 'alumno'}`
   } else if (tab.value === 'curso') {
     const c = cursos.value.find((x) => x.id === cursoIdReporte.value)
     title = `Notas del curso ${c?.nombre ?? ''}`
-    columns = ['Documento', 'Alumno', 'Edición', 'Calificación', 'Fecha evaluación']
+    columns = ['Documento', 'Alumno', 'Calificación', 'Fecha evaluación']
     rows = notasPorCurso.value.map((r) => [
-      r.documento, `${r.nombres} ${r.apellidos}`, r.nombre_edicion, r.calificacion, r.fecha_evaluacion,
+      r.documento, `${r.nombres} ${r.apellidos}`, r.calificacion, r.fecha_evaluacion,
     ])
     filenameBase = `notas_curso_${c?.nombre ?? ''}`
   } else {
     const a = alumnos.value.find((x) => x.id === alumnoIdRecord.value)
     title = `Record de notas de ${a?.nombres ?? ''} ${a?.apellidos ?? ''}`
-    columns = ['Documento', 'Nombres', 'Apellidos', 'Curso', 'Edición', 'Calificación']
+    columns = ['Documento', 'Nombres', 'Apellidos', 'Curso', 'Calificación']
     rows = recordDeAlumno.value.map((r) => [
-      r.documento, r.nombres, r.apellidos, r.curso, r.nombre_edicion, r.calificacion,
+      r.documento, r.nombres, r.apellidos, r.curso, r.calificacion,
     ])
     filenameBase = `record_${a?.apellidos ?? 'alumno'}`
   }
@@ -113,15 +113,15 @@ onMounted(cargar)
         <table class="table bg-white">
           <thead>
             <tr>
-              <th>Curso</th><th>Edición</th><th>Docente</th><th>Calificación</th><th>Fecha evaluación</th><th>Observación</th>
+              <th>Curso</th><th>Docente</th><th>Calificación</th><th>Fecha evaluación</th><th>Observación</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="r in notasPorAlumno" :key="r.edicion_id">
-              <td>{{ r.curso }}</td><td>{{ r.nombre_edicion }}</td><td>{{ r.docente }}</td>
+            <tr v-for="r in notasPorAlumno" :key="r.matricula_id">
+              <td>{{ r.curso }}</td><td>{{ r.docente }}</td>
               <td>{{ r.calificacion ?? '—' }}</td><td>{{ r.fecha_evaluacion ?? '—' }}</td><td>{{ r.observacion ?? '—' }}</td>
             </tr>
-            <tr v-if="!notasPorAlumno.length"><td colspan="6" class="text-center text-muted">Sin registros</td></tr>
+            <tr v-if="!notasPorAlumno.length"><td colspan="5" class="text-center text-muted">Sin registros</td></tr>
           </tbody>
         </table>
       </template>
@@ -140,14 +140,14 @@ onMounted(cargar)
         </div>
         <table class="table bg-white">
           <thead>
-            <tr><th>Documento</th><th>Alumno</th><th>Edición</th><th>Calificación</th><th>Fecha evaluación</th></tr>
+            <tr><th>Documento</th><th>Alumno</th><th>Calificación</th><th>Fecha evaluación</th></tr>
           </thead>
           <tbody>
-            <tr v-for="r in notasPorCurso" :key="r.alumno_id + r.edicion_id">
-              <td>{{ r.documento }}</td><td>{{ r.nombres }} {{ r.apellidos }}</td><td>{{ r.nombre_edicion }}</td>
+            <tr v-for="r in notasPorCurso" :key="r.matricula_id">
+              <td>{{ r.documento }}</td><td>{{ r.nombres }} {{ r.apellidos }}</td>
               <td>{{ r.calificacion ?? '—' }}</td><td>{{ r.fecha_evaluacion ?? '—' }}</td>
             </tr>
-            <tr v-if="!notasPorCurso.length"><td colspan="5" class="text-center text-muted">Sin registros</td></tr>
+            <tr v-if="!notasPorCurso.length"><td colspan="4" class="text-center text-muted">Sin registros</td></tr>
           </tbody>
         </table>
       </template>
@@ -166,14 +166,14 @@ onMounted(cargar)
         </div>
         <table class="table bg-white">
           <thead>
-            <tr><th>Documento</th><th>Nombres</th><th>Apellidos</th><th>Curso</th><th>Edición</th><th>Calificación</th></tr>
+            <tr><th>Documento</th><th>Nombres</th><th>Apellidos</th><th>Curso</th><th>Calificación</th></tr>
           </thead>
           <tbody>
-            <tr v-for="r in recordDeAlumno" :key="r.edicion_id">
+            <tr v-for="r in recordDeAlumno" :key="r.matricula_id">
               <td>{{ r.documento }}</td><td>{{ r.nombres }}</td><td>{{ r.apellidos }}</td>
-              <td>{{ r.curso }}</td><td>{{ r.nombre_edicion }}</td><td>{{ r.calificacion ?? '—' }}</td>
+              <td>{{ r.curso }}</td><td>{{ r.calificacion ?? '—' }}</td>
             </tr>
-            <tr v-if="!recordDeAlumno.length"><td colspan="6" class="text-center text-muted">Sin registros</td></tr>
+            <tr v-if="!recordDeAlumno.length"><td colspan="5" class="text-center text-muted">Sin registros</td></tr>
           </tbody>
         </table>
       </template>

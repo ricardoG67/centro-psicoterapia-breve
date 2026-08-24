@@ -36,8 +36,8 @@ async function seleccionarAlumno(alumno) {
     .from('matriculas')
     .select(
       `id, fecha_matricula,
-       edicion:ediciones ( id, nombre_edicion, docente, fecha_inicio, fecha_fin, curso:cursos ( nombre ) ),
-       nota:notas ( calificacion )`
+       curso:cursos ( id, nombre ),
+       nota:notas ( calificacion, docente, fecha_evaluacion )`
     )
     .eq('alumno_id', alumno.id)
     .order('fecha_matricula', { ascending: false })
@@ -107,14 +107,14 @@ onMounted(cargarAlumnos)
         <table v-else class="table bg-white">
           <thead>
             <tr>
-              <th>Curso / Edición</th>
+              <th>Curso</th>
               <th>Calificación</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="m in matriculas" :key="m.id">
-              <td>{{ m.edicion.curso.nombre }} — {{ m.edicion.nombre_edicion }}</td>
+              <td>{{ m.curso.nombre }}</td>
               <td>{{ m.nota?.calificacion ?? '—' }}</td>
               <td class="table-actions">
                 <button

@@ -1,10 +1,9 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 
 const alumnos = ref([])
 const cursos = ref([])
-const ediciones = ref([])
 const error = ref('')
 
 const busquedaAlumno = ref('')
@@ -13,24 +12,20 @@ const matriculas = ref([])
 const loadingMatriculas = ref(false)
 
 const cursoNuevaMatriculaId = ref('')
-const edicionNuevaMatriculaId = ref('')
 const matriculando = ref(false)
 
-const notaEnEdicion = ref(null) // { matricula_id, calificacion, observacion, fecha_evaluacion }
+const notaEnEdicion = ref(null) // { matricula_id, calificacion, observacion, docente, fecha_evaluacion }
 const savingNota = ref(false)
 
 async function cargarCatalogos() {
-  const [aRes, cRes, eRes] = await Promise.all([
+  const [aRes, cRes] = await Promise.all([
     supabase.from('alumnos').select('id, nombres, apellidos, documento').order('apellidos'),
     supabase.from('cursos').select('id, nombre').order('nombre'),
-    supabase.from('ediciones').select('id, curso_id, nombre_edicion').order('nombre_edicion'),
   ])
   if (aRes.error) error.value = aRes.error.message
   else alumnos.value = aRes.data
   if (cRes.error) error.value = cRes.error.message
   else cursos.value = cRes.data
-  if (eRes.error) error.value = eRes.error.message
-  else ediciones.value = eRes.data
 }
 
 const alumnosFiltrados = computed(() => {
@@ -40,10 +35,6 @@ const alumnosFiltrados = computed(() => {
     [a.nombres, a.apellidos, a.documento].join(' ').toLowerCase().includes(q)
   )
 })
-
-const edicionesDelCursoNuevaMatricula = computed(() =>
-  ediciones.value.filter((e) => e.curso_id === cursoNuevaMatriculaId.value)
-)
 
 async function seleccionarAlumno(alumno) {
   alumnoSeleccionado.value = alumno
@@ -59,8 +50,8 @@ async function cargarMatriculas() {
     .from('matriculas')
     .select(
       `id, fecha_matricula,
-       edicion:ediciones ( id, nombre_edicion, docente, fecha_inicio, fecha_fin, curso:cursos ( nombre ) ),
-       nota:notas ( id, calificacion, observacion, fecha_evaluacion )`
+       curso:cursos ( id, nombre, descripcion ),
+       nota:notas ( id, calificacion, observacion, docente, fecha_evaluacion )`
     )
     .eq('alumno_id', alumnoSeleccionado.value.id)
     .order('fecha_matricula', { ascending: false })
@@ -70,25 +61,24 @@ async function cargarMatriculas() {
 }
 
 async function matricular() {
-  if (!edicionNuevaMatriculaId.value) return
+  if (!cursoNuevaMatriculaId.value) return
   matriculando.value = true
   error.value = ''
   const { error: err } = await supabase.from('matriculas').insert({
     alumno_id: alumnoSeleccionado.value.id,
-    edicion_id: edicionNuevaMatriculaId.value,
+    curso_id: cursoNuevaMatriculaId.value,
   })
   if (err) {
-    error.value = err.code === '23505' ? 'El alumno ya está matriculado en esa edición.' : err.message
+    error.value = err.code === '23505' ? 'El alumno ya está matriculado en ese curso.' : err.message
   } else {
     cursoNuevaMatriculaId.value = ''
-    edicionNuevaMatriculaId.value = ''
     await cargarMatriculas()
   }
   matriculando.value = false
 }
 
 async function eliminarMatricula(matricula) {
-  if (!confirm(`¿Quitar la matrícula en "${matricula.edicion.curso.nombre} - ${matricula.edicion.nombre_edicion}"? Se borrará también su nota.`)) return
+  if (!confirm(`¿Quitar la matrícula en "${matricula.curso.nombre}"? Se borrará también su nota.`)) return
   const { error: err } = await supabase.from('matriculas').delete().eq('id', matricula.id)
   if (err) error.value = err.message
   else await cargarMatriculas()
@@ -99,6 +89,7 @@ function editarNota(matricula) {
     matricula_id: matricula.id,
     calificacion: matricula.nota?.calificacion ?? '',
     observacion: matricula.nota?.observacion ?? '',
+    docente: matricula.nota?.docente ?? '',
     fecha_evaluacion: matricula.nota?.fecha_evaluacion ?? '',
   }
 }
@@ -110,6 +101,7 @@ async function guardarNota() {
     matricula_id: notaEnEdicion.value.matricula_id,
     calificacion: notaEnEdicion.value.calificacion === '' ? null : notaEnEdicion.value.calificacion,
     observacion: notaEnEdicion.value.observacion || null,
+    docente: notaEnEdicion.value.docente || null,
     fecha_evaluacion: notaEnEdicion.value.fecha_evaluacion || null,
   }
   const { error: err } = await supabase.from('notas').upsert(payload, { onConflict: 'matricula_id' })
@@ -120,10 +112,6 @@ async function guardarNota() {
   }
   savingNota.value = false
 }
-
-watch(cursoNuevaMatriculaId, () => {
-  edicionNuevaMatriculaId.value = ''
-})
 
 onMounted(cargarCatalogos)
 </script>
@@ -158,24 +146,16 @@ onMounted(cargarCatalogos)
 
         <div class="card mb-3">
           <div class="card-body">
-            <h3 class="h6">Matricular en una edición</h3>
+            <h3 class="h6">Matricular en un curso</h3>
             <div class="row g-2">
-              <div class="col-md-5">
+              <div class="col-md-8">
                 <select v-model="cursoNuevaMatriculaId" class="form-select">
                   <option value="" disabled>Selecciona un curso</option>
                   <option v-for="c in cursos" :key="c.id" :value="c.id">{{ c.nombre }}</option>
                 </select>
               </div>
-              <div class="col-md-5">
-                <select v-model="edicionNuevaMatriculaId" class="form-select" :disabled="!cursoNuevaMatriculaId">
-                  <option value="" disabled>Selecciona una edición</option>
-                  <option v-for="e in edicionesDelCursoNuevaMatricula" :key="e.id" :value="e.id">
-                    {{ e.nombre_edicion }}
-                  </option>
-                </select>
-              </div>
-              <div class="col-md-2">
-                <button class="btn btn-primary w-100" :disabled="!edicionNuevaMatriculaId || matriculando" @click="matricular">
+              <div class="col-md-4">
+                <button class="btn btn-primary w-100" :disabled="!cursoNuevaMatriculaId || matriculando" @click="matricular">
                   Matricular
                 </button>
               </div>
@@ -187,7 +167,7 @@ onMounted(cargarCatalogos)
         <table v-else class="table bg-white">
           <thead>
             <tr>
-              <th>Curso / Edición</th>
+              <th>Curso</th>
               <th>Docente</th>
               <th>Calificación</th>
               <th>Fecha evaluación</th>
@@ -198,8 +178,8 @@ onMounted(cargarCatalogos)
           <tbody>
             <template v-for="m in matriculas" :key="m.id">
               <tr>
-                <td>{{ m.edicion.curso.nombre }} — {{ m.edicion.nombre_edicion }}</td>
-                <td>{{ m.edicion.docente }}</td>
+                <td>{{ m.curso.nombre }}</td>
+                <td>{{ m.nota?.docente ?? '—' }}</td>
                 <td>{{ m.nota?.calificacion ?? '—' }}</td>
                 <td>{{ m.nota?.fecha_evaluacion ?? '—' }}</td>
                 <td>{{ m.nota?.observacion ?? '—' }}</td>
@@ -217,11 +197,15 @@ onMounted(cargarCatalogos)
                       <label class="form-label small">Calificación</label>
                       <input v-model="notaEnEdicion.calificacion" type="number" step="0.01" class="form-control form-control-sm" />
                     </div>
+                    <div class="col-md-2">
+                      <label class="form-label small">Docente</label>
+                      <input v-model="notaEnEdicion.docente" class="form-control form-control-sm" />
+                    </div>
                     <div class="col-md-3">
                       <label class="form-label small">Fecha de evaluación</label>
                       <input v-model="notaEnEdicion.fecha_evaluacion" type="date" class="form-control form-control-sm" />
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-3">
                       <label class="form-label small">Observación del docente</label>
                       <input v-model="notaEnEdicion.observacion" class="form-control form-control-sm" />
                     </div>

@@ -110,8 +110,8 @@ export async function generarDiplomaPdf(alumno, matricula) {
   drawCentered(page, nombreCompleto, y - 32, { font: fontBold, size: 22, color: BRAND_RED })
   drawCentered(page, `${alumno.tipo_documento} ${alumno.documento}`, y - 56, { font, size: 11, color: BRAND_GRAY })
 
-  const cuerpo = `Por haber culminado satisfactoriamente el curso "${matricula.edicion.curso.nombre} - ${matricula.edicion.nombre_edicion}"${
-    matricula.edicion.docente ? `, a cargo de ${matricula.edicion.docente}` : ''
+  const cuerpo = `Por haber culminado satisfactoriamente el curso "${matricula.curso.nombre}"${
+    matricula.nota?.docente ? `, a cargo de ${matricula.nota.docente}` : ''
   }${matricula.nota?.calificacion != null ? `, con una calificación de ${matricula.nota.calificacion}` : ''}.`
 
   drawCenteredParagraph(page, cuerpo, y - 95, { font, size: 13, lineHeight: 20, maxWidth: width - 160 })
@@ -119,7 +119,7 @@ export async function generarDiplomaPdf(alumno, matricula) {
   pieDeDocumento(page, font, width)
 
   const bytes = await pdfDoc.save()
-  const filename = `diploma_${alumno.apellidos}_${matricula.edicion.nombre_edicion}.pdf`.toLowerCase().replace(/\s+/g, '_')
+  const filename = `diploma_${alumno.apellidos}_${matricula.curso.nombre}.pdf`.toLowerCase().replace(/\s+/g, '_')
   downloadBlob(new Blob([bytes], { type: 'application/pdf' }), filename)
 }
 
@@ -128,13 +128,13 @@ export async function generarConstanciaPdf(alumno, matricula) {
 
   const nombreCompleto = `${alumno.nombres} ${alumno.apellidos}`
 
-  const cuerpo = `Por medio de la presente, ${INSTITUCION} deja constancia de que ${nombreCompleto}, identificado(a) con ${alumno.tipo_documento} ${alumno.documento}, se encuentra matriculado(a) en el curso "${matricula.edicion.curso.nombre} - ${matricula.edicion.nombre_edicion}", con fecha de matrícula ${matricula.fecha_matricula}.`
+  const cuerpo = `Por medio de la presente, ${INSTITUCION} deja constancia de que ${nombreCompleto}, identificado(a) con ${alumno.tipo_documento} ${alumno.documento}, se encuentra matriculado(a) en el curso "${matricula.curso.nombre}", con fecha de matrícula ${matricula.fecha_matricula}.`
 
   drawCenteredParagraph(page, cuerpo, y, { font, size: 13, lineHeight: 22, maxWidth: width - 160 })
 
   pieDeDocumento(page, font, width)
 
   const bytes = await pdfDoc.save()
-  const filename = `constancia_${alumno.apellidos}_${matricula.edicion.nombre_edicion}.pdf`.toLowerCase().replace(/\s+/g, '_')
+  const filename = `constancia_${alumno.apellidos}_${matricula.curso.nombre}.pdf`.toLowerCase().replace(/\s+/g, '_')
   downloadBlob(new Blob([bytes], { type: 'application/pdf' }), filename)
 }
