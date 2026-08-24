@@ -120,19 +120,18 @@ export async function generarCertificadoPdf(alumno, matricula) {
   page.drawText(`Lima, ${hoy}`, { x: 56.2, y: 289.5, size: 12, font: helv, color: BLACK })
 
   const firma = await cargarImagen(pdfDoc, 'firma.png')
-  const grpX = 153.2
-  const grpW = 166.3
   const grpTop = 227.9
+  const lineW = 150
   let lineY = grpTop - 60
   if (firma) {
-    const firmaW = grpW * 0.75
+    const firmaW = 125
     const firmaH = firmaW * (firma.height / firma.width)
     const firmaY = grpTop - firmaH
-    page.drawImage(firma, { x: grpX + (grpW - firmaW) / 2, y: firmaY, width: firmaW, height: firmaH })
+    page.drawImage(firma, { x: (PAGE_W - firmaW) / 2, y: firmaY, width: firmaW, height: firmaH })
     lineY = firmaY - 4
     page.drawLine({
-      start: { x: grpX + grpW * 0.1, y: lineY },
-      end: { x: grpX + grpW * 0.9, y: lineY },
+      start: { x: (PAGE_W - lineW) / 2, y: lineY },
+      end: { x: (PAGE_W + lineW) / 2, y: lineY },
       thickness: 1,
       color: BLACK,
     })
