@@ -11,6 +11,7 @@ const loading = ref(false)
 const { login } = useAuth()
 const router = useRouter()
 const route = useRoute()
+const logoUrl = `${import.meta.env.BASE_URL}logo.webp`
 
 async function onSubmit() {
   error.value = ''
@@ -31,7 +32,7 @@ async function onSubmit() {
     <div class="col-12 col-sm-8 col-md-5 col-lg-4">
       <div class="card mt-5 shadow-sm">
         <div class="card-body">
-          <img :src="'/logo.webp'" alt="" class="d-block mx-auto mb-2" style="height: 64px" @error="$event.target.style.display = 'none'" />
+          <img :src="logoUrl" alt="" class="d-block mx-auto mb-2" style="height: 64px" @error="$event.target.style.display = 'none'" />
           <h1 class="h4 mb-3 text-center">Centro de Psicoterapia Breve</h1>
           <form @submit.prevent="onSubmit">
             <div class="mb-3">
