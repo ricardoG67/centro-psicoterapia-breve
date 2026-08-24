@@ -21,17 +21,21 @@ from matriculas m
 join ediciones e on e.id = m.edicion_id
 where n.matricula_id = m.id and n.docente is null;
 
--- 4. Hacer curso_id obligatorio y quitar edicion_id
+-- 4. Hacer curso_id obligatorio y renombrar la restricción única
 alter table matriculas alter column curso_id set not null;
 alter table matriculas drop constraint if exists matriculas_alumno_id_edicion_id_key;
+alter table matriculas drop constraint if exists matriculas_alumno_id_curso_id_key;
 alter table matriculas add constraint matriculas_alumno_id_curso_id_key unique (alumno_id, curso_id);
-alter table matriculas drop column edicion_id;
 
--- 5. Eliminar la vista vieja y la tabla ediciones (ya no se usa)
+-- 5. Borrar la vista vieja PRIMERO (depende de edicion_id, hay que quitarla
+-- antes de poder borrar la columna o la tabla de la que depende)
 drop view if exists v_record_notas;
+
+-- 6. Ahora sí, quitar edicion_id y la tabla ediciones (ya no se usan)
+alter table matriculas drop column if exists edicion_id;
 drop table if exists ediciones;
 
--- 6. Recrear la vista de reportes sin ediciones
+-- 7. Recrear la vista de reportes sin ediciones
 create view v_record_notas with (security_invoker = true) as
 select
   a.id as alumno_id,
