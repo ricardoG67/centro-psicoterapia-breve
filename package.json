@@ -1,0 +1,23 @@
+{
+  "name": "proyecto-pap-",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "bootstrap": "^5.3.8",
+    "pdf-lib": "^1.17.1",
+    "vue": "^3.5.40",
+    "vue-router": "^5.2.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "vite": "^8.2.0"
+  }
+}

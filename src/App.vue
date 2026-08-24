@@ -1,0 +1,29 @@
+<script setup>
+import { useAuth } from './lib/useAuth'
+
+const { user, logout } = useAuth()
+</script>
+
+<template>
+  <nav v-if="user" class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+      <span class="navbar-brand d-flex align-items-center">
+        <img :src="'/logo.webp'" alt="" @error="$event.target.style.display = 'none'" />
+        Centro de Psicoterapia Breve
+      </span>
+      <div class="navbar-nav me-auto">
+        <router-link class="nav-link" to="/alumnos">Alumnos</router-link>
+        <router-link class="nav-link" to="/cursos">Cursos</router-link>
+        <router-link class="nav-link" to="/notas">Notas</router-link>
+        <router-link class="nav-link" to="/diplomas">Diplomas</router-link>
+        <router-link class="nav-link" to="/reportes">Reportes</router-link>
+      </div>
+      <span class="navbar-text me-3">{{ user.email }}</span>
+      <button class="btn btn-outline-light btn-sm" @click="logout">Salir</button>
+    </div>
+  </nav>
+
+  <div class="container pb-5">
+    <router-view />
+  </div>
+</template>
