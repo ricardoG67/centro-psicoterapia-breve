@@ -129,13 +129,25 @@ if (errAlumnos) throw errAlumnos
 const alumnoIdPorDni = new Map(alumnosInsertados.map((a) => [a.documento, a.id]))
 
 // --- 4. Matrículas (una por fila, alumno + curso) ----------------------
+// Ojo: el excel tiene un par de filas exactamente duplicadas (mismo alumno,
+// mismo curso, mismas fechas). Postgres no permite subir dos filas con el
+// mismo alumno_id+curso_id en un solo upsert, así que nos quedamos con la
+// primera aparición de cada par.
 const matriculasPayload = []
+const paresVistos = new Set()
+let duplicadosOmitidos = 0
 for (const r of filasValidas) {
   const dni = String(buscarColumna(r, 'DNI') ?? '').trim()
   const curso = String(buscarColumna(r, 'Curso') ?? '').trim()
   const alumno_id = alumnoIdPorDni.get(dni)
   const curso_id = cursoIdPorNombre.get(curso)
   if (!alumno_id || !curso_id) continue
+  const clave = `${alumno_id}_${curso_id}`
+  if (paresVistos.has(clave)) {
+    duplicadosOmitidos++
+    continue
+  }
+  paresVistos.add(clave)
   matriculasPayload.push({
     alumno_id,
     curso_id,
@@ -144,6 +156,7 @@ for (const r of filasValidas) {
     _calificacion: parseNumero(buscarColumna(r, 'Calificación')),
   })
 }
+if (duplicadosOmitidos) console.log(`(${duplicadosOmitidos} filas duplicadas del mismo alumno+curso, se omitieron)`)
 
 console.log(`Subiendo ${matriculasPayload.length} matrículas...`)
 const { data: matriculasInsertadas, error: errMatriculas } = await supabase
