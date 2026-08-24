@@ -1,0 +1,19 @@
+name: Mantener Supabase activo
+
+# Los proyectos gratuitos de Supabase se pausan tras ~7 días sin actividad.
+# Este workflow le hace un ping cada 3 días para reducir el riesgo de que
+# se pause por inactividad, sin depender de ningún servicio externo.
+
+on:
+  schedule:
+    - cron: '0 8 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping al endpoint de salud de Supabase
+        run: |
+          curl -fsS "https://txdqtrxddquranmzbllm.supabase.co/auth/v1/health" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}"
