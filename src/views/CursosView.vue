@@ -7,7 +7,7 @@ const loading = ref(true)
 const error = ref('')
 const search = ref('')
 
-const emptyForm = () => ({ id: null, nombre: '', descripcion: '' })
+const emptyForm = () => ({ id: null, nombre: '', descripcion: '', horas: '' })
 const form = ref(emptyForm())
 const showForm = ref(false)
 const saving = ref(false)
@@ -33,7 +33,7 @@ function nuevoCurso() {
 }
 
 function editarCurso(curso) {
-  form.value = { ...curso }
+  form.value = { ...curso, horas: curso.horas ?? '' }
   showForm.value = true
 }
 
@@ -46,9 +46,10 @@ async function guardar() {
   saving.value = true
   error.value = ''
   const { id, nombre, descripcion } = form.value
+  const horas = form.value.horas === '' ? null : form.value.horas
   const query = id
-    ? supabase.from('cursos').update({ nombre, descripcion }).eq('id', id)
-    : supabase.from('cursos').insert({ nombre, descripcion })
+    ? supabase.from('cursos').update({ nombre, descripcion, horas }).eq('id', id)
+    : supabase.from('cursos').insert({ nombre, descripcion, horas })
   const { error: err } = await query
   if (err) {
     error.value = err.code === '23505' ? 'Ya existe un curso con ese nombre.' : err.message
@@ -85,9 +86,13 @@ onMounted(cargarCursos)
           <label class="form-label">Nombre del curso</label>
           <input v-model="form.nombre" class="form-control" required placeholder="Ej: Formación en Psicoterapia Breve" />
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <label class="form-label">Descripción</label>
           <input v-model="form.descripcion" class="form-control" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Horas</label>
+          <input v-model="form.horas" type="number" min="0" class="form-control" />
         </div>
         <div class="col-12 d-flex gap-2">
           <button class="btn btn-primary" type="submit" :disabled="saving">Guardar</button>
@@ -105,6 +110,7 @@ onMounted(cargarCursos)
       <tr>
         <th>Nombre</th>
         <th>Descripción</th>
+        <th>Horas</th>
         <th></th>
       </tr>
     </thead>
@@ -112,13 +118,14 @@ onMounted(cargarCursos)
       <tr v-for="c in cursosFiltrados" :key="c.id">
         <td>{{ c.nombre }}</td>
         <td>{{ c.descripcion }}</td>
+        <td>{{ c.horas }}</td>
         <td class="table-actions">
           <button class="btn btn-sm btn-outline-primary me-1" @click="editarCurso(c)">Editar</button>
           <button class="btn btn-sm btn-outline-danger" @click="eliminarCurso(c)">Eliminar</button>
         </td>
       </tr>
       <tr v-if="!cursosFiltrados.length">
-        <td colspan="3" class="text-center text-muted">Sin cursos aún</td>
+        <td colspan="4" class="text-center text-muted">Sin cursos aún</td>
       </tr>
     </tbody>
   </table>

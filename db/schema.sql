@@ -26,6 +26,7 @@ create table cursos (
   id uuid primary key default gen_random_uuid(),
   nombre text not null unique,
   descripcion text,
+  horas integer,
   created_at timestamptz not null default now()
 );
 
