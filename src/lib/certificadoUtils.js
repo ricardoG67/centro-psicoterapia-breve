@@ -95,7 +95,7 @@ export async function generarCertificadoPdf(alumno, matricula) {
   drawCentered(page, nombreCompleto, 476.3, { font: helvBold, size: 26 })
   drawCentered(page, `${alumno.tipo_documento}: ${alumno.documento}`, 442.7, { font: times, size: 16 })
 
-  const curso = matricula.curso
+  const formacion = matricula.formacion
   const fechaInicio = formatFechaLarga(matricula.fecha_matricula)
   const fechaFin = formatFechaLarga(matricula.nota?.fecha_evaluacion)
 
@@ -103,13 +103,13 @@ export async function generarCertificadoPdf(alumno, matricula) {
   if (fechaInicio && fechaFin) periodo = `, desarrollado del ${fechaInicio} al ${fechaFin}`
   else if (fechaInicio) periodo = `, desarrollado a partir del ${fechaInicio}`
 
-  const horas = curso.horas ? `Con una duración de ${curso.horas} horas teórico – prácticas${periodo}. ` : periodo ? `Desarrollado${periodo.slice(1)}. ` : ''
+  const horas = formacion.horas ? `Con una duración de ${formacion.horas} horas teórico – prácticas${periodo}. ` : periodo ? `Desarrollado${periodo.slice(1)}. ` : ''
 
   drawParrafoConEstilos(
     page,
     [
       { text: 'Por haber aprobado la formación en ', font: helv },
-      { text: `${curso.nombre.toUpperCase()}.`, font: helvBold },
+      { text: `${formacion.nombre.toUpperCase()}.`, font: helvBold },
       { text: horas, font: helv },
     ],
     376.7,
@@ -140,6 +140,6 @@ export async function generarCertificadoPdf(alumno, matricula) {
   drawCentered(page, 'Director Académico', lineY - 30, { font: helv, size: 10 })
 
   const bytes = await pdfDoc.save()
-  const filename = `certificado_${alumno.apellidos}_${curso.nombre}.pdf`.toLowerCase().replace(/\s+/g, '_')
+  const filename = `certificado_${alumno.apellidos}_${formacion.nombre}.pdf`.toLowerCase().replace(/\s+/g, '_')
   downloadBlob(new Blob([bytes], { type: 'application/pdf' }), filename)
 }

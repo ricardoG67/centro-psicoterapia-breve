@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import { supabase } from '../lib/supabaseClient'
 import LoginView from '../views/LoginView.vue'
 import AlumnosView from '../views/AlumnosView.vue'
+import FormacionesView from '../views/FormacionesView.vue'
 import CursosView from '../views/CursosView.vue'
 import NotasView from '../views/NotasView.vue'
 import CertificadosView from '../views/CertificadosView.vue'
@@ -11,6 +12,7 @@ const routes = [
   { path: '/', redirect: '/alumnos' },
   { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
   { path: '/alumnos', name: 'alumnos', component: AlumnosView },
+  { path: '/formaciones', name: 'formaciones', component: FormacionesView },
   { path: '/cursos', name: 'cursos', component: CursosView },
   { path: '/notas', name: 'notas', component: NotasView },
   { path: '/certificados', name: 'certificados', component: CertificadosView },
