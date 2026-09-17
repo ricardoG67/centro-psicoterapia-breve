@@ -26,10 +26,18 @@ function etiquetaFormacion(f) {
   return f.nombre
 }
 
+// No usar `new Date(iso)` aquí: un string "2024-03-21" se interpreta como
+// UTC medianoche, y al mostrarlo en la hora local de Perú (UTC-5) se ve
+// un día antes. Formateamos directo desde el texto, sin pasar por Date.
+function formatFechaCorta(fecha) {
+  const [y, m, d] = fecha.split('-')
+  return `${Number(d)}/${Number(m)}/${y}`
+}
+
 function formatRango(inicio, fin) {
-  if (inicio && fin) return `del ${new Date(inicio).toLocaleDateString('es-PE')} al ${new Date(fin).toLocaleDateString('es-PE')}`
-  if (inicio) return `desde ${new Date(inicio).toLocaleDateString('es-PE')}`
-  if (fin) return `hasta ${new Date(fin).toLocaleDateString('es-PE')}`
+  if (inicio && fin) return `del ${formatFechaCorta(inicio)} al ${formatFechaCorta(fin)}`
+  if (inicio) return `desde ${formatFechaCorta(inicio)}`
+  if (fin) return `hasta ${formatFechaCorta(fin)}`
   return '—'
 }
 
