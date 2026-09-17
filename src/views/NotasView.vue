@@ -14,16 +14,29 @@ const loadingMatriculas = ref(false)
 const formacionNuevaMatriculaId = ref('')
 const matriculando = ref(false)
 
-const notaEnEdicion = ref(null) // { matricula_id, calificacion, observacion, docente, fecha_evaluacion }
+const notaEnEdicion = ref(null) // { matricula_id, calificacion, observacion }
 const componentesFormacion = ref([]) // [{ curso_id, nombre }] de la formación de la matrícula en edición
 const notasCursoForm = ref({}) // curso_id -> string
 const cargandoEdicion = ref(false)
 const savingNota = ref(false)
 
+function etiquetaFormacion(f) {
+  if (f.periodo) return `${f.nombre} (${f.periodo})`
+  if (f.descripcion) return `${f.nombre} — ${f.descripcion}`
+  return f.nombre
+}
+
+function formatRango(inicio, fin) {
+  if (inicio && fin) return `del ${new Date(inicio).toLocaleDateString('es-PE')} al ${new Date(fin).toLocaleDateString('es-PE')}`
+  if (inicio) return `desde ${new Date(inicio).toLocaleDateString('es-PE')}`
+  if (fin) return `hasta ${new Date(fin).toLocaleDateString('es-PE')}`
+  return '—'
+}
+
 async function cargarCatalogos() {
   const [aRes, fRes] = await Promise.all([
     supabase.from('alumnos').select('id, nombres, apellidos, documento').order('apellidos'),
-    supabase.from('formaciones').select('id, nombre').order('nombre'),
+    supabase.from('formaciones').select('id, nombre, descripcion, periodo').order('nombre'),
   ])
   if (aRes.error) error.value = aRes.error.message
   else alumnos.value = aRes.data
@@ -53,8 +66,8 @@ async function cargarMatriculas() {
     .from('matriculas')
     .select(
       `id, fecha_matricula,
-       formacion:formaciones ( id, nombre, descripcion ),
-       nota:notas ( id, calificacion, observacion, docente, fecha_evaluacion )`
+       formacion:formaciones ( id, nombre, descripcion, periodo, fecha_inicio, fecha_fin ),
+       nota:notas ( id, calificacion, observacion )`
     )
     .eq('alumno_id', alumnoSeleccionado.value.id)
     .order('fecha_matricula', { ascending: false })
@@ -104,8 +117,6 @@ async function editarNota(matricula) {
     matricula_id: matricula.id,
     calificacion: matricula.nota?.calificacion ?? '',
     observacion: matricula.nota?.observacion ?? '',
-    docente: matricula.nota?.docente ?? '',
-    fecha_evaluacion: matricula.nota?.fecha_evaluacion ?? '',
   }
 
   const { data: fc, error: errFc } = await supabase
@@ -167,8 +178,6 @@ async function guardarNota() {
     matricula_id: notaEnEdicion.value.matricula_id,
     calificacion: notaEnEdicion.value.calificacion === '' ? null : notaEnEdicion.value.calificacion,
     observacion: notaEnEdicion.value.observacion || null,
-    docente: notaEnEdicion.value.docente || null,
-    fecha_evaluacion: notaEnEdicion.value.fecha_evaluacion || null,
   }
   const { error: err } = await supabase.from('notas').upsert(payload, { onConflict: 'matricula_id' })
   if (err) error.value = err.message
@@ -217,7 +226,7 @@ onMounted(cargarCatalogos)
               <div class="col-md-8">
                 <select v-model="formacionNuevaMatriculaId" class="form-select">
                   <option value="" disabled>Selecciona una formación</option>
-                  <option v-for="f in formaciones" :key="f.id" :value="f.id">{{ f.nombre }}</option>
+                  <option v-for="f in formaciones" :key="f.id" :value="f.id">{{ etiquetaFormacion(f) }}</option>
                 </select>
               </div>
               <div class="col-md-4">
@@ -234,9 +243,9 @@ onMounted(cargarCatalogos)
           <thead>
             <tr>
               <th>Formación</th>
-              <th>Docente</th>
+              <th>Periodo</th>
               <th>Nota final</th>
-              <th>Fecha evaluación</th>
+              <th>Fechas inicio/fin</th>
               <th>Observación</th>
               <th></th>
             </tr>
@@ -245,9 +254,9 @@ onMounted(cargarCatalogos)
             <template v-for="m in matriculas" :key="m.id">
               <tr>
                 <td>{{ m.formacion.nombre }}</td>
-                <td>{{ m.nota?.docente ?? '—' }}</td>
+                <td>{{ m.formacion.periodo ?? '—' }}</td>
                 <td>{{ m.nota?.calificacion ?? '—' }}</td>
-                <td>{{ m.nota?.fecha_evaluacion ?? '—' }}</td>
+                <td>{{ formatRango(m.formacion.fecha_inicio, m.formacion.fecha_fin) }}</td>
                 <td>{{ m.nota?.observacion ?? '—' }}</td>
                 <td class="table-actions">
                   <button class="btn btn-sm btn-outline-primary me-1" @click="editarNota(m)">
@@ -289,24 +298,20 @@ onMounted(cargarCatalogos)
                       </p>
                     </template>
 
+                    <p class="small text-muted mb-2">
+                      Periodo y fechas se editan una sola vez desde <strong>Formaciones</strong> (aplican a
+                      todos los alumnos de esta formación).
+                    </p>
                     <div class="row g-2">
-                      <div class="col-md-2">
+                      <div class="col-md-3">
                         <label class="form-label small">Nota final</label>
                         <input v-model="notaEnEdicion.calificacion" type="number" step="0.01" class="form-control form-control-sm" />
                       </div>
-                      <div class="col-md-2">
-                        <label class="form-label small">Docente</label>
-                        <input v-model="notaEnEdicion.docente" class="form-control form-control-sm" />
-                      </div>
-                      <div class="col-md-3">
-                        <label class="form-label small">Fecha de evaluación</label>
-                        <input v-model="notaEnEdicion.fecha_evaluacion" type="date" class="form-control form-control-sm" />
-                      </div>
-                      <div class="col-md-3">
-                        <label class="form-label small">Observación del docente</label>
+                      <div class="col-md-6">
+                        <label class="form-label small">Observación</label>
                         <input v-model="notaEnEdicion.observacion" class="form-control form-control-sm" />
                       </div>
-                      <div class="col-md-2 d-flex align-items-end gap-1">
+                      <div class="col-md-3 d-flex align-items-end gap-1">
                         <button class="btn btn-sm btn-primary" type="submit" :disabled="savingNota">Guardar</button>
                         <button class="btn btn-sm btn-outline-secondary" type="button" @click="cancelarEdicion">Cancelar</button>
                       </div>

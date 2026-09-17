@@ -36,7 +36,7 @@ async function seleccionarAlumno(alumno) {
     .from('matriculas')
     .select(
       `id, fecha_matricula,
-       formacion:formaciones ( id, nombre, horas ),
+       formacion:formaciones ( id, nombre, horas, fecha_inicio, fecha_fin ),
        nota:notas ( calificacion, fecha_evaluacion )`
     )
     .eq('alumno_id', alumno.id)

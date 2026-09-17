@@ -96,14 +96,17 @@ export async function generarCertificadoPdf(alumno, matricula) {
   drawCentered(page, `${alumno.tipo_documento}: ${alumno.documento}`, 442.7, { font: times, size: 16 })
 
   const formacion = matricula.formacion
-  const fechaInicio = formatFechaLarga(matricula.fecha_matricula)
-  const fechaFin = formatFechaLarga(matricula.nota?.fecha_evaluacion)
+  // Prioriza las fechas de la formación (una vez por formación); si no las
+  // tiene cargadas, usa las de la matrícula/nota como respaldo (formaciones
+  // migradas del excel viejo, donde sí variaban por alumno).
+  const fechaInicio = formatFechaLarga(formacion.fecha_inicio) ?? formatFechaLarga(matricula.fecha_matricula)
+  const fechaFin = formatFechaLarga(formacion.fecha_fin) ?? formatFechaLarga(matricula.nota?.fecha_evaluacion)
 
-  let periodo = ''
-  if (fechaInicio && fechaFin) periodo = `, desarrollado del ${fechaInicio} al ${fechaFin}`
-  else if (fechaInicio) periodo = `, desarrollado a partir del ${fechaInicio}`
+  let rangoTexto = ''
+  if (fechaInicio && fechaFin) rangoTexto = `, desarrollado del ${fechaInicio} al ${fechaFin}`
+  else if (fechaInicio) rangoTexto = `, desarrollado a partir del ${fechaInicio}`
 
-  const horas = formacion.horas ? `Con una duración de ${formacion.horas} horas teórico – prácticas${periodo}. ` : periodo ? `Desarrollado${periodo.slice(1)}. ` : ''
+  const horas = formacion.horas ? `Con una duración de ${formacion.horas} horas teórico – prácticas${rangoTexto}. ` : rangoTexto ? `Desarrollado${rangoTexto.slice(1)}. ` : ''
 
   drawParrafoConEstilos(
     page,

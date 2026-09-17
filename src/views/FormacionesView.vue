@@ -10,7 +10,7 @@ const error = ref('')
 const search = ref('')
 const expandido = ref(new Set())
 
-const emptyForm = () => ({ id: null, nombre: '', descripcion: '', horas: '' })
+const emptyForm = () => ({ id: null, nombre: '', descripcion: '', horas: '', periodo: '', fecha_inicio: '', fecha_fin: '' })
 const form = ref(emptyForm())
 const showForm = ref(false)
 const saving = ref(false)
@@ -62,7 +62,13 @@ function nuevaFormacion() {
 }
 
 function editarFormacion(formacion) {
-  form.value = { ...formacion, horas: formacion.horas ?? '' }
+  form.value = {
+    ...formacion,
+    horas: formacion.horas ?? '',
+    periodo: formacion.periodo ?? '',
+    fecha_inicio: formacion.fecha_inicio ?? '',
+    fecha_fin: formacion.fecha_fin ?? '',
+  }
   showForm.value = true
 }
 
@@ -74,11 +80,14 @@ function cancelar() {
 async function guardar() {
   saving.value = true
   error.value = ''
-  const { id, nombre, descripcion } = form.value
+  const { id, nombre, descripcion, periodo } = form.value
   const horas = form.value.horas === '' ? null : form.value.horas
+  const fecha_inicio = form.value.fecha_inicio || null
+  const fecha_fin = form.value.fecha_fin || null
+  const payload = { nombre, descripcion, horas, periodo: periodo || null, fecha_inicio, fecha_fin }
   const query = id
-    ? supabase.from('formaciones').update({ nombre, descripcion, horas }).eq('id', id)
-    : supabase.from('formaciones').insert({ nombre, descripcion, horas })
+    ? supabase.from('formaciones').update(payload).eq('id', id)
+    : supabase.from('formaciones').insert(payload)
   const { error: err } = await query
   if (err) {
     error.value = err.code === '23505' ? 'Ya existe una formación con ese nombre.' : err.message
@@ -145,6 +154,18 @@ onMounted(cargarTodo)
           <label class="form-label">Horas</label>
           <input v-model="form.horas" type="number" min="0" class="form-control" />
         </div>
+        <div class="col-md-3">
+          <label class="form-label">Periodo <span class="text-muted small">(ej: 2024 I)</span></label>
+          <input v-model="form.periodo" class="form-control" placeholder="2024 I" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Fecha inicio</label>
+          <input v-model="form.fecha_inicio" type="date" class="form-control" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Fecha fin</label>
+          <input v-model="form.fecha_fin" type="date" class="form-control" />
+        </div>
         <div class="col-12 d-flex gap-2">
           <button class="btn btn-primary" type="submit" :disabled="saving">Guardar</button>
           <button class="btn btn-outline-secondary" type="button" @click="cancelar">Cancelar</button>
@@ -164,6 +185,7 @@ onMounted(cargarTodo)
           <div>
             <button class="btn btn-sm btn-link text-decoration-none" @click="toggleExpandir(f.id)">
               {{ expandido.has(f.id) ? '▾' : '▸' }} <strong>{{ f.nombre }}</strong>
+              <span v-if="f.periodo" class="text-muted">({{ f.periodo }})</span>
             </button>
             <span class="text-muted small ms-2">{{ cursosDe(f.id).length }} curso(s) · {{ f.horas ?? '—' }} horas</span>
           </div>

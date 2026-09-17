@@ -10,7 +10,7 @@ const formaciones = ref([])
 const loading = ref(true)
 const error = ref('')
 
-const tab = ref('alumno') // alumno | formacion | record
+const tab = ref('alumno') // alumno | formacion | record | alumnos
 const alumnoIdReporte = ref('')
 const alumnoIdRecord = ref('')
 const formacionIdReporte = ref('')
@@ -22,7 +22,10 @@ async function cargar() {
   const [regRes, ncRes, aRes, fRes] = await Promise.all([
     supabase.from('v_record_notas').select('*'),
     supabase.from('v_notas_curso').select('*'),
-    supabase.from('alumnos').select('id, nombres, apellidos, documento').order('apellidos'),
+    supabase
+      .from('alumnos')
+      .select('id, nombres, apellidos, tipo_documento, documento, correo, celular, nacionalidad')
+      .order('apellidos'),
     supabase.from('formaciones').select('id, nombre').order('nombre'),
   ])
   if (regRes.error) error.value = regRes.error.message
@@ -46,6 +49,13 @@ function toggleExpandir(matriculaId) {
   expandido.value = s
 }
 
+function formatRango(inicio, fin) {
+  if (inicio && fin) return `del ${new Date(inicio).toLocaleDateString('es-PE')} al ${new Date(fin).toLocaleDateString('es-PE')}`
+  if (inicio) return `desde ${new Date(inicio).toLocaleDateString('es-PE')}`
+  if (fin) return `hasta ${new Date(fin).toLocaleDateString('es-PE')}`
+  return '—'
+}
+
 const notasPorAlumno = computed(() =>
   registros.value.filter((r) => r.alumno_id === alumnoIdReporte.value)
 )
@@ -58,33 +68,58 @@ const recordDeAlumno = computed(() =>
   registros.value.filter((r) => r.alumno_id === alumnoIdRecord.value)
 )
 
+// Agrega, después de cada fila, una fila por cada curso componente (para
+// que el PDF/Excel muestre el mismo desglose que se ve en pantalla).
+function conDesglose(filas, formatoFila, idxNota) {
+  const rows = []
+  for (const r of filas) {
+    rows.push(formatoFila(r))
+    for (const c of cursosDe(r.matricula_id)) {
+      const fila = formatoFila(r).map(() => '')
+      fila[0] = `    · ${c.curso}`
+      fila[idxNota] = c.calificacion ?? '—'
+      rows.push(fila)
+    }
+  }
+  return rows
+}
+
+function formatoFilaAlumno(r) {
+  return [r.formacion, r.periodo, r.calificacion, formatRango(r.formacion_fecha_inicio, r.formacion_fecha_fin), r.observacion]
+}
+
+function formatoFilaRecord(r) {
+  return [r.documento, r.nombres, r.apellidos, r.formacion, r.calificacion]
+}
+
 function exportarActual(formato) {
   let title, columns, rows, filenameBase
 
   if (tab.value === 'alumno') {
     const a = alumnos.value.find((x) => x.id === alumnoIdReporte.value)
     title = `Notas de ${a?.nombres ?? ''} ${a?.apellidos ?? ''}`
-    columns = ['Formación', 'Docente', 'Nota final', 'Fecha evaluación', 'Observación']
-    rows = notasPorAlumno.value.map((r) => [
-      r.formacion, r.docente, r.calificacion, r.fecha_evaluacion, r.observacion,
-    ])
+    columns = ['Formación', 'Periodo', 'Nota final', 'Fechas inicio/fin', 'Observación']
+    rows = conDesglose(notasPorAlumno.value, formatoFilaAlumno, 2)
     filenameBase = `notas_${a?.apellidos ?? 'alumno'}`
   } else if (tab.value === 'formacion') {
     const f = formaciones.value.find((x) => x.id === formacionIdReporte.value)
     title = `Notas de la formación ${f?.nombre ?? ''}`
-    columns = ['Documento', 'Alumno', 'Nota final', 'Fecha evaluación']
-    rows = notasPorFormacion.value.map((r) => [
-      r.documento, `${r.nombres} ${r.apellidos}`, r.calificacion, r.fecha_evaluacion,
-    ])
+    columns = ['Documento', 'Alumno', 'Nota final']
+    rows = notasPorFormacion.value.map((r) => [r.documento, `${r.nombres} ${r.apellidos}`, r.calificacion])
     filenameBase = `notas_formacion_${f?.nombre ?? ''}`
-  } else {
+  } else if (tab.value === 'record') {
     const a = alumnos.value.find((x) => x.id === alumnoIdRecord.value)
     title = `Record de notas de ${a?.nombres ?? ''} ${a?.apellidos ?? ''}`
     columns = ['Documento', 'Nombres', 'Apellidos', 'Formación', 'Nota final']
-    rows = recordDeAlumno.value.map((r) => [
-      r.documento, r.nombres, r.apellidos, r.formacion, r.calificacion,
-    ])
+    rows = conDesglose(recordDeAlumno.value, formatoFilaRecord, 4)
     filenameBase = `record_${a?.apellidos ?? 'alumno'}`
+  } else {
+    title = 'Listado de alumnos'
+    columns = ['Documento', 'Nombres', 'Apellidos', 'Correo', 'Celular', 'Nacionalidad']
+    rows = alumnos.value.map((a) => [
+      `${a.tipo_documento} ${a.documento}`, a.nombres, a.apellidos, a.correo, a.celular, a.nacionalidad,
+    ])
+    filenameBase = 'listado_alumnos'
   }
 
   const filenameSafe = filenameBase.toLowerCase().replace(/\s+/g, '_')
@@ -109,6 +144,9 @@ onMounted(cargar)
     <li class="nav-item">
       <button class="nav-link" :class="{ active: tab === 'record' }" @click="tab = 'record'">Record de notas</button>
     </li>
+    <li class="nav-item">
+      <button class="nav-link" :class="{ active: tab === 'alumnos' }" @click="tab = 'alumnos'">Alumnos</button>
+    </li>
   </ul>
 
   <div v-if="loading">Cargando...</div>
@@ -128,7 +166,7 @@ onMounted(cargar)
         <table class="table bg-white">
           <thead>
             <tr>
-              <th></th><th>Formación</th><th>Docente</th><th>Nota final</th><th>Fecha evaluación</th><th>Observación</th>
+              <th></th><th>Formación</th><th>Periodo</th><th>Nota final</th><th>Fechas inicio/fin</th><th>Observación</th>
             </tr>
           </thead>
           <tbody>
@@ -143,8 +181,10 @@ onMounted(cargar)
                     {{ expandido.has(r.matricula_id) ? '▾' : '▸' }}
                   </button>
                 </td>
-                <td>{{ r.formacion }}</td><td>{{ r.docente }}</td>
-                <td>{{ r.calificacion ?? '—' }}</td><td>{{ r.fecha_evaluacion ?? '—' }}</td><td>{{ r.observacion ?? '—' }}</td>
+                <td>{{ r.formacion }}</td><td>{{ r.periodo ?? '—' }}</td>
+                <td>{{ r.calificacion ?? '—' }}</td>
+                <td>{{ formatRango(r.formacion_fecha_inicio, r.formacion_fecha_fin) }}</td>
+                <td>{{ r.observacion ?? '—' }}</td>
               </tr>
               <tr v-if="expandido.has(r.matricula_id)">
                 <td></td>
@@ -179,20 +219,20 @@ onMounted(cargar)
         </div>
         <table class="table bg-white">
           <thead>
-            <tr><th>Documento</th><th>Alumno</th><th>Nota final</th><th>Fecha evaluación</th></tr>
+            <tr><th>Documento</th><th>Alumno</th><th>Nota final</th></tr>
           </thead>
           <tbody>
             <tr v-for="r in notasPorFormacion" :key="r.matricula_id">
               <td>{{ r.documento }}</td><td>{{ r.nombres }} {{ r.apellidos }}</td>
-              <td>{{ r.calificacion ?? '—' }}</td><td>{{ r.fecha_evaluacion ?? '—' }}</td>
+              <td>{{ r.calificacion ?? '—' }}</td>
             </tr>
-            <tr v-if="!notasPorFormacion.length"><td colspan="4" class="text-center text-muted">Sin registros</td></tr>
+            <tr v-if="!notasPorFormacion.length"><td colspan="3" class="text-center text-muted">Sin registros</td></tr>
           </tbody>
         </table>
       </template>
     </div>
 
-    <div v-else>
+    <div v-else-if="tab === 'record'">
       <select v-model="alumnoIdRecord" class="form-select mb-3" style="max-width: 400px">
         <option value="" disabled>Selecciona un alumno</option>
         <option v-for="a in alumnos" :key="a.id" :value="a.id">{{ a.apellidos }}, {{ a.nombres }}</option>
@@ -240,6 +280,26 @@ onMounted(cargar)
           </tbody>
         </table>
       </template>
+    </div>
+
+    <div v-else>
+      <p class="text-muted small">Listado completo de todos los alumnos registrados.</p>
+      <div class="mb-2 d-flex gap-2">
+        <button class="btn btn-sm btn-outline-secondary" @click="exportarActual('pdf')">Exportar PDF</button>
+        <button class="btn btn-sm btn-outline-secondary" @click="exportarActual('excel')">Exportar Excel</button>
+      </div>
+      <table class="table bg-white">
+        <thead>
+          <tr><th>Documento</th><th>Nombres</th><th>Apellidos</th><th>Correo</th><th>Celular</th><th>Nacionalidad</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="a in alumnos" :key="a.id">
+            <td>{{ a.tipo_documento }} {{ a.documento }}</td><td>{{ a.nombres }}</td><td>{{ a.apellidos }}</td>
+            <td>{{ a.correo }}</td><td>{{ a.celular }}</td><td>{{ a.nacionalidad }}</td>
+          </tr>
+          <tr v-if="!alumnos.length"><td colspan="6" class="text-center text-muted">Sin alumnos registrados</td></tr>
+        </tbody>
+      </table>
     </div>
   </template>
 </template>

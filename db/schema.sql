@@ -29,6 +29,9 @@ create table formaciones (
   nombre text not null unique,
   descripcion text,
   horas integer,
+  periodo text,
+  fecha_inicio date,
+  fecha_fin date,
   created_at timestamptz not null default now()
 );
 
@@ -136,6 +139,9 @@ select
   a.apellidos,
   f.id as formacion_id,
   f.nombre as formacion,
+  f.periodo,
+  f.fecha_inicio as formacion_fecha_inicio,
+  f.fecha_fin as formacion_fecha_fin,
   m.id as matricula_id,
   m.fecha_matricula,
   n.calificacion,
