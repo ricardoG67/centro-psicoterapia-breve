@@ -24,7 +24,7 @@ async function cargar() {
     supabase.from('v_notas_curso').select('*'),
     supabase
       .from('alumnos')
-      .select('id, nombres, apellidos, tipo_documento, documento, correo, celular, nacionalidad')
+      .select('id, nombres, apellidos, tipo_documento, documento, fecha_nacimiento, correo, celular, nacionalidad')
       .order('apellidos'),
     supabase.from('formaciones').select('id, nombre').order('nombre'),
   ])
@@ -76,6 +76,26 @@ const recordDeAlumno = computed(() =>
   registros.value.filter((r) => r.alumno_id === alumnoIdRecord.value)
 )
 
+const MESES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+]
+const mesCumple = ref('') // '' = todos los meses, '1'..'12' = solo ese mes
+
+// Con un mes elegido: solo los que cumplen ese mes, ordenados por día.
+// Sin mes: todos, en el orden de siempre (por apellido).
+const alumnosListado = computed(() => {
+  if (!mesCumple.value) return alumnos.value
+  const mes = Number(mesCumple.value)
+  return alumnos.value
+    .filter((a) => a.fecha_nacimiento && Number(a.fecha_nacimiento.split('-')[1]) === mes)
+    .sort((x, y) => Number(x.fecha_nacimiento.split('-')[2]) - Number(y.fecha_nacimiento.split('-')[2]))
+})
+
+function fechaNacimiento(a) {
+  return a.fecha_nacimiento ? formatFechaCorta(a.fecha_nacimiento) : ''
+}
+
 // Agrega, después de cada fila, una fila por cada curso componente (para
 // que el PDF/Excel muestre el mismo desglose que se ve en pantalla).
 function conDesglose(filas, formatoFila, idxNota) {
@@ -122,12 +142,13 @@ function exportarActual(formato) {
     rows = conDesglose(recordDeAlumno.value, formatoFilaRecord, 4)
     filenameBase = `record_${a?.apellidos ?? 'alumno'}`
   } else {
-    title = 'Listado de alumnos'
-    columns = ['Documento', 'Nombres', 'Apellidos', 'Correo', 'Celular', 'Nacionalidad']
-    rows = alumnos.value.map((a) => [
-      `${a.tipo_documento} ${a.documento}`, a.nombres, a.apellidos, a.correo, a.celular, a.nacionalidad,
+    const mes = mesCumple.value ? MESES[Number(mesCumple.value) - 1] : null
+    title = mes ? `Cumpleaños de ${mes.toLowerCase()}` : 'Listado de alumnos'
+    columns = ['Documento', 'Nombres', 'Apellidos', 'Fecha de nacimiento', 'Correo', 'Celular', 'Nacionalidad']
+    rows = alumnosListado.value.map((a) => [
+      `${a.tipo_documento} ${a.documento}`, a.nombres, a.apellidos, fechaNacimiento(a), a.correo, a.celular, a.nacionalidad,
     ])
-    filenameBase = 'listado_alumnos'
+    filenameBase = mes ? `cumpleanos_${mes}` : 'listado_alumnos'
   }
 
   const filenameSafe = filenameBase.toLowerCase().replace(/\s+/g, '_')
@@ -291,21 +312,43 @@ onMounted(cargar)
     </div>
 
     <div v-else>
-      <p class="text-muted small">Listado completo de todos los alumnos registrados.</p>
+      <p class="text-muted small">
+        Listado de alumnos registrados. Elige un mes para ver solo los cumpleaños de ese mes
+        (ordenados por día); el PDF y el Excel salen con lo que estés viendo.
+      </p>
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <label class="mb-0 small" for="mes-cumple">Cumpleaños de:</label>
+        <select id="mes-cumple" v-model="mesCumple" class="form-select form-select-sm" style="max-width: 200px">
+          <option value="">Todos los meses</option>
+          <option v-for="(m, i) in MESES" :key="m" :value="String(i + 1)">{{ m }}</option>
+        </select>
+        <button class="btn btn-sm btn-outline-secondary" @click="mesCumple = String(new Date().getMonth() + 1)">
+          Este mes
+        </button>
+        <span class="text-muted small ms-2">{{ alumnosListado.length }} alumno(s)</span>
+      </div>
       <div class="mb-2 d-flex gap-2">
         <button class="btn btn-sm btn-outline-secondary" @click="exportarActual('pdf')">Exportar PDF</button>
         <button class="btn btn-sm btn-outline-secondary" @click="exportarActual('excel')">Exportar Excel</button>
       </div>
       <table class="table bg-white">
         <thead>
-          <tr><th>Documento</th><th>Nombres</th><th>Apellidos</th><th>Correo</th><th>Celular</th><th>Nacionalidad</th></tr>
+          <tr>
+            <th>Documento</th><th>Nombres</th><th>Apellidos</th><th>Fecha de nacimiento</th>
+            <th>Correo</th><th>Celular</th><th>Nacionalidad</th>
+          </tr>
         </thead>
         <tbody>
-          <tr v-for="a in alumnos" :key="a.id">
+          <tr v-for="a in alumnosListado" :key="a.id">
             <td>{{ a.tipo_documento }} {{ a.documento }}</td><td>{{ a.nombres }}</td><td>{{ a.apellidos }}</td>
+            <td>{{ fechaNacimiento(a) }}</td>
             <td>{{ a.correo }}</td><td>{{ a.celular }}</td><td>{{ a.nacionalidad }}</td>
           </tr>
-          <tr v-if="!alumnos.length"><td colspan="6" class="text-center text-muted">Sin alumnos registrados</td></tr>
+          <tr v-if="!alumnosListado.length">
+            <td colspan="7" class="text-center text-muted">
+              {{ mesCumple ? 'Ningún alumno cumple años en ese mes' : 'Sin alumnos registrados' }}
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
