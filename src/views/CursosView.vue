@@ -60,7 +60,7 @@ async function guardar() {
 }
 
 async function eliminarCurso(curso) {
-  if (!confirm(`¿Eliminar el curso "${curso.nombre}"? Se quitará de cualquier formación que lo tenga, y se perderán las notas registradas en él.`)) return
+  if (!confirm(`¿Eliminar el curso "${curso.nombre}"? Se quitará de cualquier formación que lo tenga, y se perderán las notas y las evaluaciones docentes registradas en él.`)) return
   const { error: err } = await supabase.from('cursos').delete().eq('id', curso.id)
   if (err) error.value = err.message
   else await cargarCursos()

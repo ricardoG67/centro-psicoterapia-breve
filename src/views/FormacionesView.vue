@@ -99,7 +99,7 @@ async function guardar() {
 }
 
 async function eliminarFormacion(formacion) {
-  if (!confirm(`¿Eliminar la formación "${formacion.nombre}"? Esto también borra sus matrículas y notas.`)) return
+  if (!confirm(`¿Eliminar la formación "${formacion.nombre}"? Esto también borra sus matrículas, notas y evaluaciones docentes.`)) return
   const { error: err } = await supabase.from('formaciones').delete().eq('id', formacion.id)
   if (err) error.value = err.message
   else await cargarTodo()

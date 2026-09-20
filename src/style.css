@@ -19,6 +19,12 @@ body {
   background-color: var(--brand-gray) !important;
 }
 
+/* Bootstrap desactiva el salto de línea del menú desde 992px; con 8
+   opciones se salía de la pantalla en laptops de 1280px. */
+.navbar.navbar-expand-lg {
+  flex-wrap: wrap;
+}
+
 .navbar-brand img {
   height: 32px;
   margin-right: 0.5rem;
