@@ -20,7 +20,11 @@ async function onSubmit() {
     await login(email.value, password.value)
     router.replace(route.query.redirect || '/alumnos')
   } catch (e) {
-    error.value = 'Correo o contraseña incorrectos.'
+    // Supabase responde 429 cuando se superan los intentos permitidos.
+    const bloqueado = e?.status === 429 || e?.code === 'over_request_rate_limit'
+    error.value = bloqueado
+      ? 'Demasiados intentos fallidos. Por seguridad, espera unos minutos antes de volver a intentarlo.'
+      : 'Correo o contraseña incorrectos.'
   } finally {
     loading.value = false
   }
